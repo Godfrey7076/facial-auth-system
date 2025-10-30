@@ -1,0 +1,52 @@
+\# Facial Authentication \& Security Pass Management System
+
+
+
+A comprehensive Django-based system for facial recognition authentication and security pass management.
+
+
+
+\## Features
+
+
+
+\- 🔐 Facial recognition authentication using OpenCV
+
+\- 🏢 Multi-level security area access control  
+
+\- 👥 User management with different roles (Admin, Security, Staff, Visitors)
+
+\- 📊 Access logging and visitor tracking
+
+\- ⏰ Pass expiration and validity management
+
+\- 🔧 REST API for integration
+
+
+
+\## Technology Stack
+
+
+
+\- \*\*Backend\*\*: Django 5.2.7, Django REST Framework
+
+\- \*\*Authentication\*\*: Facial recognition + Security numbers
+
+\- \*\*Computer Vision\*\*: OpenCV, scikit-learn
+
+\- \*\*Database\*\*: SQLite (development)
+
+
+
+\## Quick Setup
+
+
+
+1\. \*\*Create virtual environment\*\*:
+
+&nbsp;  ```bash
+
+&nbsp;  python -m venv facial\_auth\_env
+
+&nbsp;  facial\_auth\_env\\Scripts\\activate
+

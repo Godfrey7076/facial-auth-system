@@ -18,7 +18,6 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
-    'custom_admin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -129,7 +128,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # =============================================================================
-# LOGOUT AND SESSION SETTINGS - ADDED FOR PROPER LOGOUT FUNCTIONALITY
+# LOGOUT AND SESSION SETTINGS - FIXED
 # =============================================================================
 
 # Login/Logout URLs
@@ -139,41 +138,38 @@ LOGOUT_REDIRECT_URL = '/admin/login/'
 
 # Session settings for proper logout functionality
 SESSION_COOKIE_AGE = 3600  # 1 hour in seconds
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when browser closes
-SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Use database for sessions
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Session cookie settings
 SESSION_COOKIE_NAME = 'sessionid'
 SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_DOMAIN = None
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
-# CSRF settings for enhanced security
-CSRF_USE_SESSIONS = True  # Store CSRF token in session instead of cookie
-CSRF_COOKIE_HTTPONLY = True  # Prevent JavaScript access to CSRF cookie
+# CSRF settings
+CSRF_USE_SESSIONS = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_COOKIE_AGE = 31449600  # 1 year in seconds
+CSRF_COOKIE_AGE = 31449600
 CSRF_COOKIE_PATH = '/'
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Security settings
-SECURE_BROWSER_XSS_FILTER = True  # Enable XSS protection in browsers
-SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME type sniffing
-X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking attacks
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
-# Additional security headers (would be handled by web server in production)
-SECURE_HSTS_SECONDS = 0  # Set to 31536000 (1 year) in production
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False  # Set to True in production
-SECURE_HSTS_PRELOAD = False  # Set to True in production
+# Additional security
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
 
 # Proxy settings
 USE_X_FORWARDED_HOST = False
 USE_X_FORWARDED_PORT = False
-SECURE_PROXY_SSL_HEADER = None  # Set in production if behind proxy
-
-# Messages framework settings (for logout notifications)
-MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+SECURE_PROXY_SSL_HEADER = None

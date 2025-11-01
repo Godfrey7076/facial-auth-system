@@ -1,0 +1,81 @@
+import cv2
+import os
+import time
+from datetime import datetime
+
+
+class DatasetCapture:
+    def __init__(self):
+        self.face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        self.dataset_path = "dataset"
+
+    def create_user_directory(self, user_id):
+        """Create directory for user if it doesn't exist"""
+        user_path = os.path.join(self.dataset_path, str(user_id))
+        if not os.path.exists(user_path):
+            os.makedirs(user_path)
+        return user_path
+
+    def capture_user_images(self, user_id, num_images=50):
+        """Capture multiple images for a user using webcam"""
+        user_path = self.create_user_directory(user_id)
+        cap = cv2.VideoCapture(0)
+
+        if not cap.isOpened():
+            print("Error: Could not open camera")
+            return False
+
+        print(f"Capturing {num_images} images for user {user_id}")
+        print("Press 'q' to quit early")
+
+        count = 0
+        while count < num_images:
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Could not read frame")
+                break
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self.face_cascade.detectMultiScale(
+                gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+            for (x, y, w, h) in faces:
+                # Draw rectangle around face
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+                # Save face image
+                face_img = gray[y:y+h, x:x+w]
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                filename = f"user_{user_id}_{timestamp}_{count}.jpg"
+                filepath = os.path.join(user_path, filename)
+
+                # Resize image for consistency
+                face_img = cv2.resize(face_img, (200, 200))
+                cv2.imwrite(filepath, face_img)
+
+                count += 1
+                print(f"Captured image {count}/{num_images}")
+
+                # Display count on frame
+                cv2.putText(frame, f'Captured: {count}/{num_images}', (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            cv2.imshow('Dataset Capture - Press q to quit', frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            # Small delay between captures
+            time.sleep(0.2)
+
+        cap.release()
+        cv2.destroyAllWindows()
+        print(f"Successfully captured {count} images for user {user_id}")
+        return True
+
+
+if __name__ == "__main__":
+    capture_system = DatasetCapture()
+    user_id = input("Enter user ID: ")
+    capture_system.capture_user_images(user_id, num_images=50)

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkpoint Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .camera-container {
+            position: relative;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        #video {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #007bff;
+        }
+        #canvas {
+            display: none;
+        }
+        .verification-result {
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">Security Checkpoint</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Checkpoint Verification</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5>Staff Verification</h5>
+                                <form id="staffVerificationForm">
+                                    <div class="mb-3">
+                                        <label for="staffId" class="form-label">Staff ID Number</label>
+                                        <input type="text" class="form-control" id="staffId" required>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="verifyStaff()">
+                                        Verify Staff
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Visitor Verification</h5>
+                                <form id="visitorVerificationForm">
+                                    <div class="mb-3">
+                                        <label for="visitorId" class="form-label">Visitor ID Number</label>
+                                        <input type="text" class="form-control" id="visitorId" required>
+                                    </div>
+                                    <button type="button" class="btn btn-info" onclick="verifyVisitor()">
+                                        Verify Visitor
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="camera-container">
+                            <video id="video" autoplay playsinline></video>
+                            <canvas id="canvas"></canvas>
+                        </div>
+
+                        <div class="controls text-center">
+                            <button id="captureBtn" class="btn btn-success btn-lg" onclick="captureAndVerify()">
+                                Capture & Verify Face
+                            </button>
+                            <button id="startRealTimeBtn" class="btn btn-warning btn-lg" onclick="startRealTimeVerification()">
+                                Start Real-time Verification
+                            </button>
+                        </div>
+
+                        <div id="verificationResult" class="verification-result mt-3" style="display: none;"></div>
+
+                        <div class="mt-4">
+                            <h6>Recent Access Logs</h6>
+                            <div id="recentLogs" class="small">
+                                <!-- Recent logs will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        let currentVerificationType = null;
+        let currentIdNumber = null;
+
+        // Camera setup
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve(video);
+                    };
+                });
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error accessing camera. Please ensure you have granted camera permissions.');
+            }
+        }
+
+        // Capture image from video
+        function captureImage() {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');
+        }
+
+        // Verify staff member
+        async function verifyStaff() {
+            const staffId = document.getElementById('staffId').value;
+            if (!staffId) {
+                alert('Please enter staff ID number');
+                return;
+            }
+
+            currentVerificationType = 'staff';
+            currentIdNumber = staffId;
+            
+            const imageData = captureImage();
+            
+            try {
+                const response = await fetch('/api/authenticate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        security_number: staffId,
+                        face_data: await getFaceEncoding()
+                    })
+                });
+
+                const result = await response.json();
+                showVerificationResult(result);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Verification failed. Please try again.');
+            }
+        }
+
+        // Verify visitor
+        async function verifyVisitor() {
+            const visitorId = document.getElementById('visitorId').value;
+            if (!visitorId) {
+                alert('Please enter visitor ID number');
+                return;
+            }
+
+            currentVerificationType = 'visitor';
+            currentIdNumber = visitorId;
+            
+            const imageData = captureImage();
+            
+            try {
+                const response = await fetch('/api/visitor/authenticate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id_number: visitorId,
+                        face_data: await getFaceEncoding()
+                    })
+                });
+
+                const result = await response.json();
+                showVerificationResult(result);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Verification failed. Please try again.');
+            }
+        }
+
+        // Get face encoding
+        async function getFaceEncoding() {
+            try {
+                const response = await fetch('/api/capture-face/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                return result.face_encoding;
+
+            } catch (error) {
+                console.error('Error getting face encoding:', error);
+                return null;
+            }
+        }
+
+        // Capture and verify
+        async function captureAndVerify() {
+            if (!currentVerificationType || !currentIdNumber) {
+                alert('Please select verification type and enter ID number first');
+                return;
+            }
+
+            if (currentVerificationType === 'staff') {
+                await verifyStaff();
+            } else {
+                await verifyVisitor();
+            }
+        }
+
+        // Real-time verification
+        async function startRealTimeVerification() {
+            if (!currentVerificationType || !currentIdNumber) {
+                alert('Please select verification type and enter ID number first');
+                return;
+            }
+
+            // This would require more complex WebRTC implementation
+            alert('Real-time verification requires additional setup. Using standard verification.');
+            await captureAndVerify();
+        }
+
+        // Show verification result
+        function showVerificationResult(result) {
+            const resultDiv = document.getElementById('verificationResult');
+            resultDiv.style.display = 'block';
+
+            if (result.message && result.message.includes('successful')) {
+                resultDiv.className = 'verification-result success';
+                resultDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    ${result.message}<br>
+                    Similarity: ${(result.similarity_score * 100).toFixed(2)}%
+                `;
+            } else {
+                resultDiv.className = 'verification-result error';
+                resultDiv.innerHTML = `
+                    <i class="fas fa-times-circle"></i> 
+                    ${result.error || 'Verification failed'}
+                    ${result.similarity_score ? `<br>Similarity: ${(result.similarity_score * 100).toFixed(2)}%` : ''}
+                `;
+            }
+
+            loadRecentLogs();
+        }
+
+        // Show error
+        function showError(message) {
+            const resultDiv = document.getElementById('verificationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'verification-result error';
+            resultDiv.innerHTML = `<i class="fas fa-times-circle"></i> ${message}`;
+        }
+
+        // Load recent logs
+        async function loadRecentLogs() {
+            try {
+                const response = await fetch('/api/access-logs/');
+                const result = await response.json();
+                
+                const logsHtml = result.access_logs.slice(0, 5).map(log => `
+                    <div class="d-flex justify-content-between border-bottom py-1">
+                        <span>${log.username}</span>
+                        <span class="${log.access_granted ? 'text-success' : 'text-danger'}">
+                            ${log.access_granted ? '✓ Granted' : '✗ Denied'}
+                        </span>
+                        <small class="text-muted">${new Date(log.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                `).join('');
+                
+                document.getElementById('recentLogs').innerHTML = logsHtml;
+
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        // Initialize camera and load logs
+        setupCamera();
+        loadRecentLogs();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
+</body>
+</html>

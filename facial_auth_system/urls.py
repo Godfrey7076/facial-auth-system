@@ -6,7 +6,7 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('admin/', admin.site.urls),  # This uses default Django admin
+    path('admin/', admin.site.urls),  # Use default Django admin
     path('api/', include('facial_auth.urls')),
 ]
 

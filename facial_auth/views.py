@@ -2,8 +2,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout as auth_logout
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import UserProfile, SecurityArea, AccessLog, VisitorLog, SystemSettings
@@ -330,3 +332,76 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+# =============================================================================
+# TEMPLATE VIEWS (for browser access)
+# =============================================================================
+
+def login_page(request):
+    """Render login page for browser access"""
+    # If user is already authenticated, redirect to dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    return render(request, 'login.html')
+
+
+def register_page(request):
+    """Render registration page for browser access"""
+    # If user is already authenticated, redirect to dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    return render(request, 'register.html')
+
+
+@login_required
+def dashboard(request):
+    """Render user dashboard"""
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        recent_logs = AccessLog.objects.filter(
+            user=request.user).order_by('-timestamp')[:5]
+
+        context = {
+            'user_profile': user_profile,
+            'recent_logs': recent_logs,
+            'pass_expires_soon': not user_profile.is_pass_valid(),
+        }
+        return render(request, 'dashboard.html', context)
+
+    except UserProfile.DoesNotExist:
+        auth_logout(request)
+        return redirect('login_page')
+
+
+def logout_view(request):
+    """Handle user logout"""
+    auth_logout(request)
+    return redirect('login_page')
+
+
+def home_page(request):
+    """Render home page"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'index.html')
+
+
+@login_required
+def profile_page(request):
+    """Render user profile page"""
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        access_logs = AccessLog.objects.filter(
+            user=request.user).order_by('-timestamp')[:20]
+
+        context = {
+            'user_profile': user_profile,
+            'access_logs': access_logs,
+        }
+        return render(request, 'profile.html', context)
+
+    except UserProfile.DoesNotExist:
+        return redirect('dashboard')
